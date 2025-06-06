@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ProcessGptRequest implements ShouldQueue
@@ -37,30 +38,36 @@ class ProcessGptRequest implements ShouldQueue
             $service = $factory->make($this->gptRequest->metadata['service'] ?? 'openai');
 
             // Отправчляем запрос
-            $result = $service->sendRequest(
-                $this->gptRequest->prompt,
-                [
-                    'model' => $this->gptRequest->metadata['model'] ?? null,
-                    'temperature' => $this->gptRequest->metadata['temperature'] ?? null,
-                ]
-            );
-
-            // Обновляем запрос
-            $this->gptRequest->update([
-                'status' => 'completed',
-                'response' => $result['content'],
-                'metadata' => array_merge($this->gptRequest->metadata ?? [], [
-                    'tokens_used' => $result['tokens_used'],
-                    'model' => $result['model'],
-                    'service' => $service->getName(),
-                ]),
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . config('services.openai.api_key'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.openai.com/v1/chat/completions', [
+                'model' => 'gpt-3.5-turbo',
+                'messages' => [
+                    ['role' => 'user', 'content' => $this->gptRequest->prompt]
+                ],
+                'temperature' => 0.7,
             ]);
 
-            event(new GptRequestCompleted($this->gptRequest));
+            if ($response->successful()) {
+                $this->gptRequest->update([
+                    'status' => 'completed',
+                    'response' => $response->json('choices.0.message.content'),
+                    'metadata' => array_merge($this->gptRequest->metadata ?? [], [
+                        'tokens_used' => $response->json('usage.total_tokens'),
+                        'model' => $response->json('model'),
+                        'service' => $service->getName(),
+                    ]),
+                ]);
+
+                event(new GptRequestCompleted($this->gptRequest));
+            } else {
+                throw new \Exception('GPT API request failed: ' . $response->body());
+            }
         } catch (\Exception $e) {
-            Log::error('GPT Request failed', [
+            Log::error('GPT request processing failed', [
                 'request_id' => $this->gptRequest->id,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage()
             ]);
 
             $this->gptRequest->update([
