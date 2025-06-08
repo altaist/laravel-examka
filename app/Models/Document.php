@@ -14,6 +14,8 @@ class Document extends Model
 
     protected $fillable = [
         'user_id',
+        'document_type_id',
+        'step',
         'content',
         'title',
         'description',
@@ -21,6 +23,7 @@ class Document extends Model
 
     protected $casts = [
         'content' => 'array',
+        'step' => 'string',
     ];
 
     /**
@@ -29,6 +32,22 @@ class Document extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Получить тип документа
+     */
+    public function documentType(): BelongsTo
+    {
+        return $this->belongsTo(DocumentType::class);
+    }
+
+    /**
+     * Получить все части документа
+     */
+    public function parts(): HasMany
+    {
+        return $this->hasMany(DocumentPart::class);
     }
 
     /**

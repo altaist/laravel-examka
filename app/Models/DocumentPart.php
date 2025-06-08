@@ -6,27 +6,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class GptRequest extends Model
+class DocumentPart extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'document_id',
-        'document_part_id',
-        'prompt',
-        'response',
-        'status',
-        'error_message',
+        'name',
+        'content',
+        'order',
         'metadata',
     ];
 
     protected $casts = [
+        'content' => 'array',
         'metadata' => 'array',
     ];
 
     /**
-     * Получить документ, к которому относится запрос
+     * Получить документ, к которому относится часть
      */
     public function document(): BelongsTo
     {
@@ -34,10 +34,10 @@ class GptRequest extends Model
     }
 
     /**
-     * Получить часть документа, к которой относится запрос
+     * Получить все запросы GPT для этой части документа
      */
-    public function documentPart(): BelongsTo
+    public function gptRequests(): HasMany
     {
-        return $this->belongsTo(DocumentPart::class);
+        return $this->hasMany(GptRequest::class);
     }
 } 
