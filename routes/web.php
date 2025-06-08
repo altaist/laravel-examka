@@ -28,6 +28,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/gpt-requests', [GptRequestController::class, 'store'])->name('gpt.store');
     Route::get('/gpt-requests', [GptRequestController::class, 'getRequests'])->name('gpt.requests');
     Route::get('/gpt-requests/{gptRequest}', [GptRequestController::class, 'show'])->name('gpt.show');
+
+    // Document Routes
+    Route::get('/document', [\App\Http\Controllers\DocumentController::class, 'create'])->name('document.create');
+    Route::post('/document', [\App\Http\Controllers\DocumentController::class, 'store'])->name('document.store');
+    Route::get('/document/{document}/part', [\App\Http\Controllers\DocumentController::class, 'createPart'])->name('document.part.create');
+    Route::post('/document/{document}/part', [\App\Http\Controllers\DocumentController::class, 'storePart'])->name('document.part.store');
 });
 
 require __DIR__.'/auth.php';

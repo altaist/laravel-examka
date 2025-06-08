@@ -16,7 +16,7 @@ class DocumentPart extends Model
         'document_id',
         'name',
         'content',
-        'order',
+        'index',
         'metadata',
     ];
 
